@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, CliApp, CliImplicitFlag
 from rich.logging import RichHandler
 from logging.handlers import TimedRotatingFileHandler
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(os.path.join(os.getcwd(), ".env"))
 
 
 class BaseNotifier(ABC):
