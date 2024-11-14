@@ -42,10 +42,12 @@ def run(docker_conatiner_name: str):
     now = datetime.now()
 
     for db_name in settings.DB_NAMES:
-        log.info(f"Backing up database '{db_name}'")
+        log.info(f"Backing up '{db_name}' on '{docker_conatiner_name}'")
+        to_path, tar_file_name = get_parsed_path(docker_conatiner_name, db_name, now)
         backup_dir = do_data_db_backup(docker_conatiner_name, db_name)
         if backup_dir:
-            tar_file(docker_conatiner_name, db_name, backup_dir.name, now)
+            if tar_file(tar_file_name, db_name, backup_dir.name):
+                move_file(to_path, tar_file_name, db_name, backup_dir.name)
             backup_dir.cleanup()
     log.info("Finshed database backup")
 
@@ -88,36 +90,37 @@ def do_data_db_backup(docker_conatiner_name: str, db_name: str):
         log.error(f"Failed to backup database '{db_name}': {type(e).__name__}:{e}")
 
 
-def tar_file(docker_conatiner_name, db_name, temp_dir_name, now=None):
-    """Runs the tar command in the temp_dir_name
-    and moves the tar file to the backup_location"""
+def get_parsed_path(docker_conatiner_name, db_name, now=None):
     if not now:
         now = datetime.now()
     to_path = os.path.join(settings.BACKUP_LOCATION, settings.FILE_TEMPLATE)
     to_path = to_path.format(db_name=db_name, docker_conatiner_name=docker_conatiner_name)
     to_path = now.strftime(to_path)
-    # tar_file_name = str(db_name) + ".tar"
     tar_file_name = os.path.basename(to_path)
     if not tar_file_name.endswith(".tar"):
         tar_file_name = tar_file_name + ".tar"
-    to_path = os.path.dirname(to_path)
-    # try:
-    #     os.makedirs(os.path.dirname(to_path), exist_ok=True)
-    # except Exception as e:
-    #     log.error(f"Failed to create backup location: {type(e).__name__}:{e}")
-    #     return False
+    to_path_dir = os.path.dirname(to_path)
+    return to_path_dir, tar_file_name
 
+
+def tar_file(tar_file_name, db_name, temp_dir_name):
+    """Runs the tar command in the temp_dir_name
+    and moves the tar file to the backup_location"""
     try:
         log.debug("Tar sql file...")
         args = ["tar", "-cf", tar_file_name, db_name]
         if not _safe_run("tar", args, cwd=temp_dir_name):
             return False
+        return True
+    except Exception as e:
+        log.error(f"Failed to tar '{db_name}': {type(e).__name__}:{e}")
 
+
+def move_file(to_path_dir, tar_file_name, db_name, temp_dir_name):
+    try:
         log.debug("Moving tar file...")
         from_path = os.path.join(temp_dir_name, tar_file_name)
-        run_rclone(["copy", from_path, to_path])
-
-        # shutil.move(os.path.join(temp_dir_name, tar_file_name), to_path)
-        return True
+        if run_rclone(["copy", from_path, to_path_dir]):
+            return True
     except Exception as e:
         log.error(f"Failed to tar '{db_name}': {type(e).__name__}:{e}")
