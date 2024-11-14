@@ -6,6 +6,7 @@ import dotenv
 from pydantic import SecretStr, PrivateAttr, Field
 from pydantic_settings import BaseSettings, CliApp, CliImplicitFlag
 from rich.logging import RichHandler
+from logging.handlers import TimedRotatingFileHandler
 
 dotenv.load_dotenv()
 
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     DB_IMAGE_NAME: str = "postgres"
     DB_NAMES: list[str] = ["data", "docassemble"]
     DPB_LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG"
+    DPB_LOG_FILE: str | None = None
     DPB_NICENESS: int = 15
     DB_USER: str = "postgres"
     DB_PASS: SecretStr = SecretStr("")
@@ -63,8 +65,21 @@ class ErrorNotifyFilter(logging.Filter):
 
 
 def setup_logging(settings: Settings):
-    log_fmt = "{name:20} {asctime:25} {message}"
-    log_handler = RichHandler(rich_tracebacks=False, markup=True, show_time=False)
+    if settings.DPB_LOG_FILE:
+        log_file = os.path.expanduser(settings.DPB_LOG_FILE)
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        # log_handler = logging.FileHandler(log_file)
+        log_handler = TimedRotatingFileHandler(
+            filename=log_file,
+            when="midnight",
+            backupCount=7,
+            encoding=None,
+            delay=True,
+        )
+        log_fmt = "{levelname:9} {name:20} {asctime:25} {message}"
+    else:
+        log_fmt = "{name:20} {asctime:25} {message}"
+        log_handler = RichHandler(rich_tracebacks=False, markup=True, show_time=False)
     formatter = logging.Formatter(log_fmt, style="{")
     log_handler.setFormatter(formatter)
 

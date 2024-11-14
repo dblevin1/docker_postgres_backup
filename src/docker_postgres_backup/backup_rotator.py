@@ -1,10 +1,11 @@
-import subprocess
 import json
-from datetime import datetime as dt, timedelta
+import os
+from datetime import datetime as dt
+
 from dateutil.relativedelta import relativedelta
+
 from .config import log, settings
 from .rclone_manager import run_rclone
-import os
 
 
 def do_db_backup_file_rotation():
@@ -39,9 +40,9 @@ def do_db_backup_file_rotation():
         return to_delete
 
     if settings.DRY_RUN_ROTATOR:
-        log.info(
-            f"Dry Run, would've deleted {len(to_delete)} files, run with --test-rotator to see what would've been deleted"
-        )
+        msgstr = ("To Delete:\n" + "\n".join([f" '{v}'" for v in to_delete])).strip()
+        log.debug(msgstr)
+        log.info(f"Dry Run, would've deleted {len(to_delete)} files")
         return
 
     for item in to_delete:
