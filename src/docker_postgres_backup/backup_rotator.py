@@ -49,11 +49,12 @@ def do_db_backup_file_rotation():
         # item is a relative path to settings.BACKUP_LOCATION
         log.debug(f"Deleting: {item}")
         fullpath = os.path.join(settings.BACKUP_LOCATION, item)
-        args = ["delete", fullpath, "--rmdirs"]
+        args = ["delete", fullpath]
         run_rclone(args)
 
     if to_delete:
-        log.info(f"Deleted {len(to_delete)} files")
+        log.info(f"Deleted {len(to_delete)} files, Removing empty directories...")
+        run_rclone(["rmdirs", settings.BACKUP_LOCATION, "--leave-root"])
 
 
 class StaggeredFileRotator:
