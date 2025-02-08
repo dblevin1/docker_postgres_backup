@@ -12,6 +12,7 @@ def do_db_backup_file_rotation(docker_conatiner_name):
     if not settings.STAGGERED_ROTATOR:
         log.debug("Staggered rotation disabled")
         return
+    log.info(f"Starting staggered rotation for '{docker_conatiner_name}'")
     folder_path = settings.BACKUP_LOCATION.format(docker_conatiner_name=docker_conatiner_name)
     args = [
         "lsjson",
