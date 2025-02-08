@@ -8,15 +8,16 @@ from .config import log, settings
 from .rclone_manager import run_rclone
 
 
-def do_db_backup_file_rotation():
+def do_db_backup_file_rotation(docker_conatiner_name):
     if not settings.STAGGERED_ROTATOR:
         log.debug("Staggered rotation disabled")
         return
+    folder_path = settings.BACKUP_LOCATION.format(docker_conatiner_name=docker_conatiner_name)
     args = [
         "lsjson",
         "-R",
         "--files-only",
-        settings.BACKUP_LOCATION,
+        folder_path,
     ]
     got = run_rclone(args)
     if isinstance(got, bool) or not got.strip():
@@ -48,13 +49,13 @@ def do_db_backup_file_rotation():
     for item in to_delete:
         # item is a relative path to settings.BACKUP_LOCATION
         log.debug(f"Deleting: {item}")
-        fullpath = os.path.join(settings.BACKUP_LOCATION, item)
+        fullpath = os.path.join(folder_path, item)
         args = ["delete", fullpath]
         run_rclone(args)
 
     if to_delete:
         log.info(f"Deleted {len(to_delete)} files, Removing empty directories...")
-        run_rclone(["rmdirs", settings.BACKUP_LOCATION, "--leave-root"])
+        run_rclone(["rmdirs", folder_path, "--leave-root"])
 
 
 class StaggeredFileRotator:
@@ -98,4 +99,12 @@ class StaggeredFileRotator:
 
 
 if __name__ == "__main__":
-    do_db_backup_file_rotation()
+    from .config import log, settings
+    from .main import main
+
+    settings.TEST_ROTATOR = True
+    settings.OVERRIDE_CONTAINER_NAMES = ["happyacres-db-1", "blessesnest-db-1"]
+
+    # sys.argv.append("--test-rotator")
+    # sys.argv.append('--override_container_names="[happyacres-db-1, blessesnest-db-1]"')
+    main()

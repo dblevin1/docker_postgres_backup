@@ -26,10 +26,10 @@ class Settings(BaseSettings):
     DB_PASS: SecretStr = SecretStr("")
     DB_HOST: str = ""
 
-    BACKUP_LOCATION: str = "/tmp/backups"
+    BACKUP_LOCATION: str = "/tmp/backups/test_{docker_conatiner_name}"
     """ Backup rotation will be done on this location """
 
-    FILE_TEMPLATE: str = "test_{docker_conatiner_name}/%Y/%m/%d_%H.%M.%S_{db_name}.tar"
+    FILE_TEMPLATE: str = "%Y/%m/%d_%H.%M.%S_{db_name}.tar"
     """ first pased through python str format, then through dt.strftime"""
 
     PUSHBULLET: SecretStr = SecretStr("")
@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     RCLONE_BINARY_PATH: str = "/usr/bin/rclone"
     RCLONE_AUTO_UPDATE: CliImplicitFlag[bool] = False
 
+    OVERRIDE_CONTAINER_NAMES: list[str] | None = None
     TEST_ROTATOR: CliImplicitFlag[bool] = False
     DRY_RUN_ROTATOR: CliImplicitFlag[bool] = False
     """ if true, will do everything except delete files """

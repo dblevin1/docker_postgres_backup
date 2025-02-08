@@ -24,10 +24,12 @@ def run_rclone(args: list[str]) -> bool | str:
             **kwargs,
         )
         if process.returncode != 0:
+            log.debug(f"rclone args: {args}")
             log.error(f"'{breadcrumb}' failed: {process.stdout}{process.stderr}")
             return False
         return process.stdout or True
     except Exception as e:
+        log.debug(f"rclone args: {args}")
         log.error(f"'{breadcrumb}' failed: {type(e).__name__}:{e}")
         return False
 
